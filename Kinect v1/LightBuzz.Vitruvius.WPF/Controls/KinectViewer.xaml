@@ -6,13 +6,14 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     mc:Ignorable="d"
     d:DesignWidth="1920" d:DesignHeight="1080"
-
+AllowDrop="True"
     SizeChanged="UserControl_SizeChanged"
     >
 
-    <Grid>
-        <Image Name="camera" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" />
-        <Canvas Name="canvas" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    <Grid AllowDrop="True">
+        <Image  AllowDrop="True" Name="camera" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <Canvas AllowDrop="True" Name="canvas" HorizontalAlignment="Center" VerticalAlignment="Center"  />
+        <Canvas AllowDrop="True" Name="canvas2" HorizontalAlignment="Center" VerticalAlignment="Center"  />
     </Grid>
 
 </UserControl>

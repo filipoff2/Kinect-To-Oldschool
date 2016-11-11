@@ -1,10 +1,17 @@
 ﻿using Microsoft.Kinect;
+using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using WindowsInput;
+using WindowsInput.Native;
 
 //TODO: why not use CanvasExtensions here and move/merge respective functionality to it?
 //TODO: why not wrap the parent Grid of Image and Canvas controls' inside a Viewbox and thus avoid manually resizing the Canvas?
@@ -62,10 +69,55 @@ namespace LightBuzz.Vitruvius.Controls
 
         #region --- Initialization ---
 
+        Ellipse e1, e2 ,e3,e4;
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool SetForegroundWindow(IntPtr hWnd);
+
         public KinectViewer()
         {
+            Process[] processes = Process.GetProcessesByName("chrome"); // GetProcesses();// GetProcessesByName("Google Chrome (32 bit)");
+            Process game1 = processes[0];
+
+            IntPtr p = game1.MainWindowHandle;
+            SetForegroundWindow(p); //GetProcessesByName("Google Chrome (32 bit)");
             this.InitializeComponent();
             SetValue(RenderTransformOriginProperty, new Point(0.5, 0.5)); //this is needed for FlippedHorizontally and FlippedVertically to work, since they set the RenderTransform property
+
+            e1 = CreateAnEllipse(100, 100, Colors.Red);
+           
+            e2 = CreateAnEllipse(100, 100, Colors.RoyalBlue);
+
+            e3 = CreateAnEllipse(100, 100, Colors.Salmon);
+            e4 = CreateAnEllipse(100, 100, Colors.SeaGreen);
+
+            Canvas.SetLeft(e1, 10);
+            Canvas.SetTop(e2, 200);
+
+
+            Canvas.SetLeft(e2, 400);
+            Canvas.SetTop(e2, 200);
+
+
+            Canvas.SetLeft(e3, 100);
+            Canvas.SetTop(e3, 10);
+
+
+            Canvas.SetLeft(e4, 100);
+            Canvas.SetTop(e4, 300);
+
+
+
+            canvas2.Children.Add(e1);
+            canvas2.Children.Add(e2);
+
+            canvas2.Children.Add(e3);
+            canvas2.Children.Add(e4);
+
+
+
+
         }
 
         #endregion
@@ -253,7 +305,61 @@ namespace LightBuzz.Vitruvius.Controls
             Canvas.SetTop(ellipse, point.Y - ellipse.Height / 2);
 
             canvas.Children.Add(ellipse);
+
+            DoThings(ellipse, point);
         }
+
+        InputSimulator sim = new InputSimulator();
+
+        public async Task<bool> DoThings(Ellipse ellipse, Point point) {
+            try
+            {
+                var x2 = point.X;
+                var y2 = point.Y;//Canvas.GetTop(ellipse);
+                Rect r2 = new Rect(x2, y2, ellipse.ActualWidth, ellipse.ActualHeight);
+                Conflict(r2, e1, VirtualKeyCode.LEFT);
+                Conflict(r2, e2, VirtualKeyCode.RIGHT);
+                Conflict(r2, e3, VirtualKeyCode.UP);
+                Conflict(r2, e4, VirtualKeyCode.DOWN);
+            }
+            catch (Exception ee) {
+                Console.WriteLine(ee);
+            }
+            return true; 
+        }
+
+        bool oneNext = false;
+
+        public async Task Conflict(Rect r2, Ellipse elipse, VirtualKeyCode keycode) {
+
+            var x3 = Canvas.GetLeft(elipse);
+            var y3 = Canvas.GetTop(elipse);
+            //Rect r3 = new Rect(x3, y3, e2.ActualWidth, e2.ActualHeight);
+
+            Rect r3 = new Rect(x3, y3, 100, 100);
+
+            if (r2.IntersectsWith(r3))
+            {
+
+                    try
+                    {
+                        // System.Windows.Forms.SendKeys.SendWait("" + System.Windows.Forms.Keys.Left);
+                        //System.Windows.Forms.SendKeys.SendWait("{LEFT}{LEFT}{LEFT}");
+                        sim.Keyboard.KeyPress(keycode);
+                        await Task.Delay(1000);
+                        sim.Keyboard.KeyPress(keycode);
+
+
+                    //System.Windows.Forms.SendKeys.SendWait("a");
+                }
+                catch (StackOverflowException ee)
+                    {
+                        System.Windows.Forms.SendKeys.Flush();
+                    }
+                    //System.Windows.Forms.SendKeys.SendWait("{LEFT}");
+            }
+        }
+
 
         public void DrawJoint(Joint joint)
         {
@@ -304,24 +410,157 @@ namespace LightBuzz.Vitruvius.Controls
                 StrokeThickness = thickness,
                 Stroke = brush
             };
-
+            
             canvas.Children.Add(line);
-        }
+
+                   }
 
         public void DrawBone(Joint first, Joint second)
         {
             DrawBone(first, second, BoneBrush, DEFAULT_BONE_THICKNESS);
         }
 
+        // Customize your ellipse in this method
+        public Ellipse CreateAnEllipse(int height, int width, Color color)
+        {
+            SolidColorBrush fillBrush = new SolidColorBrush() { Color = color };
+            SolidColorBrush borderBrush = new SolidColorBrush() { Color = Colors.Black };
+
+            Ellipse ret =  new Ellipse()
+            {
+                Height = height,
+                Width = width,
+                StrokeThickness = 1,
+                Stroke = borderBrush,
+                Fill = fillBrush,
+                AllowDrop = true
+            };
+
+            ret.MouseMove += ellipse_MouseMove;
+            ret.DragEnter += ellipse_DragEnter;
+            ret.DragLeave += ellipse_DragLeave;
+            ret.DragOver += ellipse_DragOver;
+            ret.Drop += ellipse_Drop;
+
+            return ret;
+        }
+
+        private void ellipse_Drop(object sender, DragEventArgs e)
+        {
+            Ellipse ellipse = sender as Ellipse;
+            if (ellipse != null)
+            {
+                // If the DataObject contains string data, extract it.
+                if (e.Data.GetDataPresent(DataFormats.StringFormat))
+                {
+                    string dataString = (string)e.Data.GetData(DataFormats.StringFormat);
+
+                    // If the string can be converted into a Brush, 
+                    // convert it and apply it to the ellipse.
+                    BrushConverter converter = new BrushConverter();
+                    if (converter.IsValid(dataString))
+                    {
+                        Brush newFill = (Brush)converter.ConvertFromString(dataString);
+                        ellipse.Fill = newFill;
+                    }
+                }
+            }
+        }
+
+        private void ellipse_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = DragDropEffects.None;
+
+            // If the DataObject contains string data, extract it.
+            if (e.Data.GetDataPresent(DataFormats.StringFormat))
+            {
+                string dataString = (string)e.Data.GetData(DataFormats.StringFormat);
+
+                // If the string can be converted into a Brush, allow copying.
+                BrushConverter converter = new BrushConverter();
+                if (converter.IsValid(dataString))
+                {
+                    e.Effects = DragDropEffects.Copy | DragDropEffects.Move;
+                }
+            }
+        }
+
+        private void ellipse_DragLeave(object sender, DragEventArgs e)
+        {
+            Ellipse ellipse = sender as Ellipse;
+            if (ellipse != null)
+            {
+                ellipse.Fill = _previousFill;
+            }
+        }
+
+        private Brush _previousFill = null;
+        private void ellipse_DragEnter(object sender, DragEventArgs e)
+        {
+            Ellipse ellipse = sender as Ellipse;
+            if (ellipse != null)
+            {
+                // Save the current Fill brush so that you can revert back to this value in DragLeave.
+                _previousFill = ellipse.Fill;
+
+                // If the DataObject contains string data, extract it.
+                if (e.Data.GetDataPresent(DataFormats.StringFormat))
+                {
+                    string dataString = (string)e.Data.GetData(DataFormats.StringFormat);
+
+                    // If the string can be converted into a Brush, convert it.
+                    BrushConverter converter = new BrushConverter();
+                    if (converter.IsValid(dataString))
+                    {
+                        Brush newFill = (Brush)converter.ConvertFromString(dataString);
+                        ellipse.Fill = newFill;
+                    }
+                }
+            }
+        }
+
+        private void ellipse_MouseMove(object sender, MouseEventArgs e)
+{
+            
+            Ellipse ellipse = sender as Ellipse;
+
+        
+            if (ellipse != null && e.LeftButton == MouseButtonState.Pressed)
+    {
+                double firstXPos = e.GetPosition(ellipse).X;
+                double firstYPos = e.GetPosition(ellipse).Y;
+
+
+                //DragDrop.DoDragDrop(
+                //                      ellipse,
+                //                      ellipse,
+                //                      DragDropEffects.All);
+
+
+                Canvas.SetLeft(ellipse,  e.GetPosition(this).X-50);
+                Canvas.SetTop(ellipse,  e.GetPosition(this).Y);
+       // DragDrop.DoDragDrop( ellipse,
+       //                      ellipse,
+       //                      DragDropEffects.All);
+            }
+}
+
+
+
         public void DrawBody(Skeleton body)
         {
             Clear();
+           // canvas.Children.Add(e1);
+
+            
+           // canvas.Children.Add(e2);
 
             if (body == null || body.TrackingState != SkeletonTrackingState.Tracked) return;
 
             foreach (Joint joint in body.Joints)
                 DrawJoint(joint, JointBrush, JointRadius);
 
+            
             DrawBone(body.Joints[JointType.Head], body.Joints[JointType.ShoulderCenter], BoneBrush, BoneThickness);
             DrawBone(body.Joints[JointType.ShoulderCenter], body.Joints[JointType.ShoulderLeft], BoneBrush, BoneThickness);
             DrawBone(body.Joints[JointType.ShoulderCenter], body.Joints[JointType.ShoulderRight], BoneBrush, BoneThickness);
@@ -376,6 +615,10 @@ namespace LightBuzz.Vitruvius.Controls
 
             _ratioX = canvas.Width / _kinectFrameWidth;
             _ratioY = canvas.Height / _kinectFrameHeight;
+
+            canvas2.Width = camera.ActualWidth;
+            canvas2.Height = camera.ActualHeight;
+
         }
 
         #endregion
@@ -388,6 +631,9 @@ namespace LightBuzz.Vitruvius.Controls
         {
             _kinectFrameWidth = _kinectFrameHeight = 0;
             canvas.Width = canvas.Height = 0.0; //note: need to clear this too for "SetCanvasSize()" to be called next time Update method is called
+
+            canvas2.Width = canvas2.Height = 0.0;
+
         }
 
         #endregion
