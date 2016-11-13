@@ -1,5 +1,6 @@
 ﻿using Microsoft.Kinect;
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -69,7 +70,7 @@ namespace LightBuzz.Vitruvius.Controls
 
         #region --- Initialization ---
 
-        Ellipse e1, e2 ,e3,e4;
+        Ellipse e1, e2, e3, e4;
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -86,7 +87,7 @@ namespace LightBuzz.Vitruvius.Controls
             SetValue(RenderTransformOriginProperty, new Point(0.5, 0.5)); //this is needed for FlippedHorizontally and FlippedVertically to work, since they set the RenderTransform property
 
             e1 = CreateAnEllipse(100, 100, Colors.Red);
-           
+
             e2 = CreateAnEllipse(100, 100, Colors.RoyalBlue);
 
             e3 = CreateAnEllipse(100, 100, Colors.Salmon);
@@ -251,7 +252,7 @@ namespace LightBuzz.Vitruvius.Controls
             //flips around the center point either horizontally, or vertically or both horizontally and vertically
             get
             {
-                return (!FlippedHorizontally && !FlippedVertically)? null : new ScaleTransform((FlippedHorizontally) ? -1 : 1, (FlippedVertically) ? -1 : 1); //assumes RenderTransformOrigin property has been set to (0.5, 0.5) at constructor, that is the view center
+                return (!FlippedHorizontally && !FlippedVertically) ? null : new ScaleTransform((FlippedHorizontally) ? -1 : 1, (FlippedVertically) ? -1 : 1); //assumes RenderTransformOrigin property has been set to (0.5, 0.5) at constructor, that is the view center
             }
         }
 
@@ -311,7 +312,8 @@ namespace LightBuzz.Vitruvius.Controls
 
         InputSimulator sim = new InputSimulator();
 
-        public async Task<bool> DoThings(Ellipse ellipse, Point point) {
+        public async Task<bool> DoThings(Ellipse ellipse, Point point)
+        {
             try
             {
                 var x2 = point.X;
@@ -322,42 +324,66 @@ namespace LightBuzz.Vitruvius.Controls
                 Conflict(r2, e3, VirtualKeyCode.UP);
                 Conflict(r2, e4, VirtualKeyCode.DOWN);
             }
-            catch (Exception ee) {
+            catch (Exception ee)
+            {
                 Console.WriteLine(ee);
             }
-            return true; 
+            return true;
         }
 
-        bool oneNext = false;
 
-        public async Task Conflict(Rect r2, Ellipse elipse, VirtualKeyCode keycode) {
+        ConcurrentDictionary<VirtualKeyCode, VirtualKeyCode> clicks = new ConcurrentDictionary<VirtualKeyCode, VirtualKeyCode>();
+
+        public async Task Conflict(Rect r2, Ellipse elipse, VirtualKeyCode keycode)
+        {
 
             var x3 = Canvas.GetLeft(elipse);
             var y3 = Canvas.GetTop(elipse);
             //Rect r3 = new Rect(x3, y3, e2.ActualWidth, e2.ActualHeight);
 
             Rect r3 = new Rect(x3, y3, 100, 100);
-
+       
             if (r2.IntersectsWith(r3))
             {
+                if (clicks.Keys.Contains(keycode))
+                {
+                    return;
+                }
 
-                    try
+                try
+                {
+                    //Conflict started
+                    // System.Windows.Forms.SendKeys.SendWait("" + System.Windows.Forms.Keys.Left);
+                    //System.Windows.Forms.SendKeys.SendWait("{LEFT}{LEFT}{LEFT}");\
+                    if(clicks.TryAdd(keycode, keycode))
                     {
-                        // System.Windows.Forms.SendKeys.SendWait("" + System.Windows.Forms.Keys.Left);
-                        //System.Windows.Forms.SendKeys.SendWait("{LEFT}{LEFT}{LEFT}");
-                        sim.Keyboard.KeyPress(keycode);
-                        await Task.Delay(1000);
-                        sim.Keyboard.KeyPress(keycode);
+                        sim.Keyboard.KeyDown(keycode);
+                    }
+                    
+//                    await Task.Delay(1000);
+//                   sim.Keyboard.KeyPress(keycode);
 
 
                     //System.Windows.Forms.SendKeys.SendWait("a");
                 }
                 catch (StackOverflowException ee)
-                    {
-                        System.Windows.Forms.SendKeys.Flush();
-                    }
-                    //System.Windows.Forms.SendKeys.SendWait("{LEFT}");
+                {
+                    System.Windows.Forms.SendKeys.Flush();
+                }
+                //System.Windows.Forms.SendKeys.SendWait("{LEFT}");
             }
+            else
+            {
+                //Conflict stoped
+                if (clicks.Keys.Contains(keycode))
+                {
+                    sim.Keyboard.KeyPress(keycode);
+                    VirtualKeyCode notused;
+                    clicks.TryRemove(keycode,out notused);
+                }
+            }
+
+
         }
 
 
@@ -410,10 +436,10 @@ namespace LightBuzz.Vitruvius.Controls
                 StrokeThickness = thickness,
                 Stroke = brush
             };
-            
+
             canvas.Children.Add(line);
 
-                   }
+        }
 
         public void DrawBone(Joint first, Joint second)
         {
@@ -426,7 +452,7 @@ namespace LightBuzz.Vitruvius.Controls
             SolidColorBrush fillBrush = new SolidColorBrush() { Color = color };
             SolidColorBrush borderBrush = new SolidColorBrush() { Color = Colors.Black };
 
-            Ellipse ret =  new Ellipse()
+            Ellipse ret = new Ellipse()
             {
                 Height = height,
                 Width = width,
@@ -520,13 +546,13 @@ namespace LightBuzz.Vitruvius.Controls
         }
 
         private void ellipse_MouseMove(object sender, MouseEventArgs e)
-{
-            
+        {
+
             Ellipse ellipse = sender as Ellipse;
 
-        
+
             if (ellipse != null && e.LeftButton == MouseButtonState.Pressed)
-    {
+            {
                 double firstXPos = e.GetPosition(ellipse).X;
                 double firstYPos = e.GetPosition(ellipse).Y;
 
@@ -537,30 +563,30 @@ namespace LightBuzz.Vitruvius.Controls
                 //                      DragDropEffects.All);
 
 
-                Canvas.SetLeft(ellipse,  e.GetPosition(this).X-50);
-                Canvas.SetTop(ellipse,  e.GetPosition(this).Y);
-       // DragDrop.DoDragDrop( ellipse,
-       //                      ellipse,
-       //                      DragDropEffects.All);
+                Canvas.SetLeft(ellipse, e.GetPosition(this).X - 50);
+                Canvas.SetTop(ellipse, e.GetPosition(this).Y);
+                // DragDrop.DoDragDrop( ellipse,
+                //                      ellipse,
+                //                      DragDropEffects.All);
             }
-}
+        }
 
 
 
         public void DrawBody(Skeleton body)
         {
             Clear();
-           // canvas.Children.Add(e1);
+            // canvas.Children.Add(e1);
 
-            
-           // canvas.Children.Add(e2);
+
+            // canvas.Children.Add(e2);
 
             if (body == null || body.TrackingState != SkeletonTrackingState.Tracked) return;
 
             foreach (Joint joint in body.Joints)
                 DrawJoint(joint, JointBrush, JointRadius);
 
-            
+
             DrawBone(body.Joints[JointType.Head], body.Joints[JointType.ShoulderCenter], BoneBrush, BoneThickness);
             DrawBone(body.Joints[JointType.ShoulderCenter], body.Joints[JointType.ShoulderLeft], BoneBrush, BoneThickness);
             DrawBone(body.Joints[JointType.ShoulderCenter], body.Joints[JointType.ShoulderRight], BoneBrush, BoneThickness);
