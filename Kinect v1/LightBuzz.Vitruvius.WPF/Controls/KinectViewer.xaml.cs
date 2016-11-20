@@ -1,4 +1,6 @@
-﻿using Microsoft.Kinect;
+﻿using GalaSoft.MvvmLight.Messaging;
+using LightBuzz.Vitruvius.Core;
+using Microsoft.Kinect;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -72,17 +74,16 @@ namespace LightBuzz.Vitruvius.Controls
 
         Ellipse e1, e2, e3, e4;
 
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool SetForegroundWindow(IntPtr hWnd);
+     //   [DllImport("user32.dll")]
+     //   [return: MarshalAs(UnmanagedType.Bool)]
+//        static extern bool SetForegroundWindow(IntPtr hWnd);
 
         public KinectViewer()
         {
-            Process[] processes = Process.GetProcessesByName("chrome"); // GetProcesses();// GetProcessesByName("Google Chrome (32 bit)");
-            Process game1 = processes[0];
-
-            IntPtr p = game1.MainWindowHandle;
-            SetForegroundWindow(p); //GetProcessesByName("Google Chrome (32 bit)");
+            //Process[] processes = Process.GetProcessesByName("chrome"); // GetProcesses();// GetProcessesByName("Google Chrome (32 bit)");
+           // Process game1 = processes[0];
+           // IntPtr p = game1.MainWindowHandle;
+           // SetForegroundWindow(p); //GetProcessesByName("Google Chrome (32 bit)");
             this.InitializeComponent();
             SetValue(RenderTransformOriginProperty, new Point(0.5, 0.5)); //this is needed for FlippedHorizontally and FlippedVertically to work, since they set the RenderTransform property
 
@@ -94,19 +95,19 @@ namespace LightBuzz.Vitruvius.Controls
             e4 = CreateAnEllipse(100, 100, Colors.SeaGreen);
 
             Canvas.SetLeft(e1, 10);
-            Canvas.SetTop(e2, 200);
+            Canvas.SetTop(e2, 10);
 
 
-            Canvas.SetLeft(e2, 400);
-            Canvas.SetTop(e2, 200);
+            Canvas.SetLeft(e2, 10);
+            Canvas.SetTop(e2, 150);
 
 
-            Canvas.SetLeft(e3, 100);
-            Canvas.SetTop(e3, 10);
+            Canvas.SetLeft(e3, 10);
+            Canvas.SetTop(e3, 250);
 
 
-            Canvas.SetLeft(e4, 100);
-            Canvas.SetTop(e4, 300);
+            Canvas.SetLeft(e4, 10);
+            Canvas.SetTop(e4, 350);
 
 
 
@@ -117,8 +118,15 @@ namespace LightBuzz.Vitruvius.Controls
             canvas2.Children.Add(e4);
 
 
+            Messenger.Default.Register<bool>(this, ViewsConsts.MessagesTrackingMode, changeSensorMode);
 
+        }
 
+        bool IsSensorSeated; 
+
+        private void changeSensorMode(bool obj)
+        {
+            IsSensorSeated = obj;
         }
 
         #endregion
@@ -584,7 +592,27 @@ namespace LightBuzz.Vitruvius.Controls
             if (body == null || body.TrackingState != SkeletonTrackingState.Tracked) return;
 
             foreach (Joint joint in body.Joints)
+            {
+
+                if (
+                IsSensorSeated && (
+                joint.JointType == JointType.HipCenter ||
+                joint.JointType == JointType.HipLeft ||
+                joint.JointType == JointType.HipRight ||
+                joint.JointType == JointType.KneeLeft ||
+                joint.JointType == JointType.KneeRight ||
+                joint.JointType == JointType.AnkleLeft ||
+                joint.JointType == JointType.AnkleRight ||
+                joint.JointType == JointType.FootRight || 
+                joint.JointType == JointType.FootLeft)
+                )
+                {
+                    continue;
+                }
+
+
                 DrawJoint(joint, JointBrush, JointRadius);
+            }
 
 
             DrawBone(body.Joints[JointType.Head], body.Joints[JointType.ShoulderCenter], BoneBrush, BoneThickness);
@@ -598,6 +626,12 @@ namespace LightBuzz.Vitruvius.Controls
             DrawBone(body.Joints[JointType.WristLeft], body.Joints[JointType.HandLeft], BoneBrush, BoneThickness);
             DrawBone(body.Joints[JointType.WristRight], body.Joints[JointType.HandRight], BoneBrush, BoneThickness);
             DrawBone(body.Joints[JointType.Spine], body.Joints[JointType.HipCenter], BoneBrush, BoneThickness);
+
+            if (IsSensorSeated)
+            {
+                return;
+            }
+
             DrawBone(body.Joints[JointType.HipCenter], body.Joints[JointType.HipLeft], BoneBrush, BoneThickness);
             DrawBone(body.Joints[JointType.HipCenter], body.Joints[JointType.HipRight], BoneBrush, BoneThickness);
             DrawBone(body.Joints[JointType.HipLeft], body.Joints[JointType.KneeLeft], BoneBrush, BoneThickness);

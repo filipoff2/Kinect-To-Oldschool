@@ -1,8 +1,11 @@
 ﻿#define USE_KINECTVIEWER //comment this out if you edit the XAML and use instead of KinectViewer control the Viewbox control (that contains a Grid with an Image and a Canvas)
 
+using GalaSoft.MvvmLight.Messaging;
 using LightBuzz.Vitruvius;
+using LightBuzz.Vitruvius.Core;
 using LightBuzz.Vitruvius.WPF;
 using Microsoft.Kinect;
+using System;
 using System.Linq;
 using System.Windows;
 
@@ -29,13 +32,38 @@ namespace VitruviusTest
             /* optional display flipping (vertical flipping may be useful when using a projector) */
             kinectViewer.FlippedHorizontally = true;
             kinectViewer.FlippedVertically = false;
-            #endif
+#endif
+
+            Messenger.Default.Register<bool>(this, ViewsConsts.MessagesTrackingMode, changeSensorMode);
         }
+
+        private void changeSensorMode(bool mode)
+        {
+
+            if (sensor == null) {
+                return;
+            }
+
+            if (mode)
+            {
+                sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
+            }
+
+            if (mode==false)
+            {
+                sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Default;
+            }
+        }
+
+
+
+
+        KinectSensor sensor;
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             KinectSensor sensor = SensorExtensions.Default();
-
+      
             if (sensor != null)
             {
                 sensor.EnableAllStreams();
@@ -99,33 +127,40 @@ namespace VitruviusTest
             using (var frame = e.OpenSkeletonFrame())
                 if (frame != null)
                 {
-                    #if USE_KINECTVIEWER
-                    kinectViewer.Clear();
-                    #else
+                    //Dispatcher.BeginInvoke(
+                    //       new Action<MainWindow>((lol) =>
+                    //       {
+
+#if USE_KINECTVIEWER
+                               kinectViewer.Clear();
+#else
                     canvas.ClearSkeletons();
-                    #endif
+#endif
 
-                    tblHeights.Text = string.Empty;
+                               tblHeights.Text = string.Empty;
 
-                    var skeletons = frame.Skeletons().Where(s => s.TrackingState == SkeletonTrackingState.Tracked);
+                               var skeletons = frame.Skeletons().Where(s => s.TrackingState == SkeletonTrackingState.Tracked);
 
-                    foreach (var skeleton in skeletons)
-                        if (skeleton != null)
-                        {
-                            // Update skeleton gestures
-                            _gestureController.Update(skeleton);
+                               foreach (var skeleton in skeletons)
+                                   if (skeleton != null)
+                                   {
+                                       // Update skeleton gestures
+                                      _gestureController.Update(skeleton);
 
-                            // Draw skeleton
-                            #if USE_KINECTVIEWER
-                            kinectViewer.DrawBody(skeleton);
-                            #else
+                                       // Draw skeleton
+#if USE_KINECTVIEWER
+                                    kinectViewer.DrawBody(skeleton);
+#else
                             canvas.DrawSkeleton(skeleton);
-                            #endif
+#endif
 
-                            // Display user height
-                            tblHeights.Text += string.Format("\nUser {0}: {1}cm", skeleton.TrackingId, skeleton.Height());
-                        }
-                    }
+                                       // Display user height
+                                       tblHeights.Text += string.Format("\nUser {0}: {1}cm", skeleton.TrackingId, skeleton.Height());
+                                   }
+
+                    //       }));
+
+                }
         }
 
         private void GestureController_GestureRecognized(object sender, GestureEventArgs e)
@@ -172,6 +207,16 @@ namespace VitruviusTest
         }
 
         #endregion
+
+
+        bool isSeated = false;
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            
+            isSeated = !isSeated;
+            button.Content = "isSeated:"+isSeated;
+            Messenger.Default.Send(isSeated, ViewsConsts.MessagesTrackingMode);
+        }
     }
 
 }

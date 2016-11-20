@@ -50,6 +50,12 @@
                 <TextBlock Text="User heights:" />
                 <TextBlock Name="tblHeights" Text="-" />
             </StackPanel>
+
+            <StackPanel Style="{StaticResource StackPanelTextBlocksStyle}">
+                <TextBlock Text="Full body/Seated tacking " />
+                <Button x:Name="button" Click="Button_Click">IsSeat:false</Button>
+            </StackPanel>
+
         </StackPanel>
 
     </Grid>
