@@ -3,6 +3,7 @@ using LightBuzz.Vitruvius.Core;
 using Microsoft.Kinect;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -89,12 +90,12 @@ namespace LightBuzz.Vitruvius.Controls
             this.InitializeComponent();
             SetValue(RenderTransformOriginProperty, new Point(0.5, 0.5)); //this is needed for FlippedHorizontally and FlippedVertically to work, since they set the RenderTransform property
 
-            e1 = CreateAnEllipse(100, 100, Colors.Red);
+            e1 = CreateAnEllipse(100, 100, Colors.Red , VirtualKeyCode.LEFT);
 
-            e2 = CreateAnEllipse(100, 100, Colors.RoyalBlue);
+            e2 = CreateAnEllipse(100, 100, Colors.RoyalBlue,VirtualKeyCode.RIGHT);
 
-            e3 = CreateAnEllipse(100, 100, Colors.Salmon);
-            e4 = CreateAnEllipse(100, 100, Colors.SeaGreen);
+            e3 = CreateAnEllipse(100, 100, Colors.Salmon,VirtualKeyCode.UP);
+            e4 = CreateAnEllipse(100, 100, Colors.SeaGreen, VirtualKeyCode.DOWN);
 
             Canvas.SetLeft(e1, 10);
             Canvas.SetTop(e2, 10);
@@ -136,9 +137,8 @@ namespace LightBuzz.Vitruvius.Controls
                 return;
             }
 
-            colorToKey.TryAdd(color, key);
-
-            e1 = CreateAnEllipse(100, 100, color);
+            
+            e1 = CreateAnEllipse(100, 100, color, key);
             canvas2.Children.Add(e1);
 
 
@@ -350,14 +350,16 @@ namespace LightBuzz.Vitruvius.Controls
                 var x2 = point.X;
                 var y2 = point.Y;//Canvas.GetTop(ellipse);
                 Rect r2 = new Rect(x2, y2, ellipse.ActualWidth, ellipse.ActualHeight);
-                
-                //todo add key handling
-                //Color color = (elipse.Fill as SolidColorBrush).Color;
 
-                Conflict(r2, e1, VirtualKeyCode.LEFT);
-                Conflict(r2, e2, VirtualKeyCode.RIGHT);
-                Conflict(r2, e3, VirtualKeyCode.UP);
-                Conflict(r2, e4, VirtualKeyCode.DOWN);
+
+                //todo add key handling
+                foreach (var myellipse in ellipseList) {
+
+                    Color color = (myellipse.Fill as SolidColorBrush).Color;
+                    Conflict(r2, myellipse, colorToKey[color]);
+                }
+
+
             }
             catch (Exception ee)
             {
@@ -481,8 +483,11 @@ namespace LightBuzz.Vitruvius.Controls
             DrawBone(first, second, BoneBrush, DEFAULT_BONE_THICKNESS);
         }
 
+
+        List<Ellipse> ellipseList = new List<Ellipse>();
+
         // Customize your ellipse in this method
-        public Ellipse CreateAnEllipse(int height, int width, Color color)
+        public Ellipse CreateAnEllipse(int height, int width, Color color, VirtualKeyCode key)
         {
             SolidColorBrush fillBrush = new SolidColorBrush() { Color = color };
             SolidColorBrush borderBrush = new SolidColorBrush() { Color = Colors.Black };
@@ -502,6 +507,11 @@ namespace LightBuzz.Vitruvius.Controls
             ret.DragLeave += ellipse_DragLeave;
             ret.DragOver += ellipse_DragOver;
             ret.Drop += ellipse_Drop;
+
+            ellipseList.Add(ret);
+
+            
+            colorToKey.TryAdd(color, key);
 
             return ret;
         }
