@@ -56,6 +56,30 @@
                 <Button x:Name="button" Click="Button_Click">IsSeat:false</Button>
             </StackPanel>
 
+            <StackPanel Style="{StaticResource StackPanelTextBlocksStyle}">
+                <TextBlock Text="add hit area" />
+                <ComboBox x:Name="keys">
+                </ComboBox>
+
+                <ComboBox Name="comboColors">
+                    <ComboBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Grid Loaded="table_Loaded" />
+                        </ItemsPanelTemplate>
+                    </ComboBox.ItemsPanel>
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Rectangle Fill="{Binding Name}" Width="16" Height="16" Margin="0 2 5 2" />
+                                <TextBlock Text="{Binding Name}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button x:Name="addbutton" Click="addbutton_Click">Add</Button>
+            </StackPanel>
+            
+ 
         </StackPanel>
 
     </Grid>

@@ -9,5 +9,7 @@ namespace LightBuzz.Vitruvius.Core
     public static class ViewsConsts
     {
         public const string MessagesTrackingMode = "TrackingMode";
+
+        public const string MessagesNewColor = "MessagesNewColor";
     }
 }

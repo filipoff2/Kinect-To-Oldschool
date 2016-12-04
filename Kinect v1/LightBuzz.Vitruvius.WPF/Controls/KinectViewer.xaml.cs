@@ -68,6 +68,8 @@ namespace LightBuzz.Vitruvius.Controls
         protected double _ratioX = 1.0;
         protected double _ratioY = 1.0;
 
+        ConcurrentDictionary<Color, VirtualKeyCode> colorToKey = new ConcurrentDictionary<Color, VirtualKeyCode>();
+
         #endregion
 
         #region --- Initialization ---
@@ -119,8 +121,29 @@ namespace LightBuzz.Vitruvius.Controls
 
 
             Messenger.Default.Register<bool>(this, ViewsConsts.MessagesTrackingMode, changeSensorMode);
+            Messenger.Default.Register<Tuple<Color, VirtualKeyCode>>(this, ViewsConsts.MessagesNewColor, addEllipse);
 
         }
+
+        private void addEllipse(Tuple<Color, VirtualKeyCode> obj)
+        {
+           var color = obj.Item1;
+           var key = obj.Item2;
+
+
+            if (colorToKey.Keys.Contains(color))
+            {
+                return;
+            }
+
+            colorToKey.TryAdd(color, key);
+
+            e1 = CreateAnEllipse(100, 100, color);
+            canvas2.Children.Add(e1);
+
+
+        }
+
 
         bool IsSensorSeated; 
 
@@ -327,6 +350,10 @@ namespace LightBuzz.Vitruvius.Controls
                 var x2 = point.X;
                 var y2 = point.Y;//Canvas.GetTop(ellipse);
                 Rect r2 = new Rect(x2, y2, ellipse.ActualWidth, ellipse.ActualHeight);
+                
+                //todo add key handling
+                //Color color = (elipse.Fill as SolidColorBrush).Color;
+
                 Conflict(r2, e1, VirtualKeyCode.LEFT);
                 Conflict(r2, e2, VirtualKeyCode.RIGHT);
                 Conflict(r2, e3, VirtualKeyCode.UP);

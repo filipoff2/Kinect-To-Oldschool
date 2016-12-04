@@ -8,6 +8,9 @@ using Microsoft.Kinect;
 using System;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using WindowsInput.Native;
 
 namespace VitruviusTest
 {
@@ -28,7 +31,9 @@ namespace VitruviusTest
         {
             InitializeComponent();
 
-            #if USE_KINECTVIEWER
+            keys.ItemsSource = Enum.GetValues(typeof(VirtualKeyCode));
+            comboColors.ItemsSource = typeof(Colors).GetProperties();
+#if USE_KINECTVIEWER
             /* optional display flipping (vertical flipping may be useful when using a projector) */
             kinectViewer.FlippedHorizontally = true;
             kinectViewer.FlippedVertically = false;
@@ -40,7 +45,8 @@ namespace VitruviusTest
         private void changeSensorMode(bool mode)
         {
 
-            if (sensor == null) {
+            if (sensor == null)
+            {
                 return;
             }
 
@@ -49,7 +55,7 @@ namespace VitruviusTest
                 sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
             }
 
-            if (mode==false)
+            if (mode == false)
             {
                 sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Default;
             }
@@ -63,7 +69,7 @@ namespace VitruviusTest
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             KinectSensor sensor = SensorExtensions.Default();
-      
+
             if (sensor != null)
             {
                 sensor.EnableAllStreams();
@@ -84,12 +90,12 @@ namespace VitruviusTest
 
         public VisualizationMode Mode
         {
-            #if USE_KINECTVIEWER
+#if USE_KINECTVIEWER
             get { return kinectViewer.FrameType; }
             set { kinectViewer.FrameType = value; }
-            #else
+#else
             get; set;
-            #endif
+#endif
         }
 
         #endregion
@@ -102,11 +108,11 @@ namespace VitruviusTest
 
             using (var frame = e.OpenColorImageFrame())
                 if (frame != null)
-                    #if USE_KINECTVIEWER
+#if USE_KINECTVIEWER
                     kinectViewer.Update(frame.ToBitmap());
-                    #else
+#else
                     camera.Source = frame.ToBitmap();
-                    #endif
+#endif
         }
 
         private void Sensor_DepthFrameReady(object sender, DepthImageFrameReadyEventArgs e)
@@ -115,11 +121,11 @@ namespace VitruviusTest
 
             using (var frame = e.OpenDepthImageFrame())
                 if (frame != null)
-                    #if USE_KINECTVIEWER
+#if USE_KINECTVIEWER
                     kinectViewer.Update(frame.ToBitmap());
-                    #else
+#else
                     camera.Source = frame.ToBitmap();
-                    #endif
+#endif
         }
 
         private void Sensor_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
@@ -132,31 +138,31 @@ namespace VitruviusTest
                     //       {
 
 #if USE_KINECTVIEWER
-                               kinectViewer.Clear();
+                    kinectViewer.Clear();
 #else
                     canvas.ClearSkeletons();
 #endif
 
-                               tblHeights.Text = string.Empty;
+                    tblHeights.Text = string.Empty;
 
-                               var skeletons = frame.Skeletons().Where(s => s.TrackingState == SkeletonTrackingState.Tracked);
+                    var skeletons = frame.Skeletons().Where(s => s.TrackingState == SkeletonTrackingState.Tracked);
 
-                               foreach (var skeleton in skeletons)
-                                   if (skeleton != null)
-                                   {
-                                       // Update skeleton gestures
-                                      _gestureController.Update(skeleton);
+                    foreach (var skeleton in skeletons)
+                        if (skeleton != null)
+                        {
+                            // Update skeleton gestures
+                            _gestureController.Update(skeleton);
 
-                                       // Draw skeleton
+                            // Draw skeleton
 #if USE_KINECTVIEWER
-                                    kinectViewer.DrawBody(skeleton);
+                            kinectViewer.DrawBody(skeleton);
 #else
                             canvas.DrawSkeleton(skeleton);
 #endif
 
-                                       // Display user height
-                                       tblHeights.Text += string.Format("\nUser {0}: {1}cm", skeleton.TrackingId, skeleton.Height());
-                                   }
+                            // Display user height
+                            tblHeights.Text += string.Format("\nUser {0}: {1}cm", skeleton.TrackingId, skeleton.Height());
+                        }
 
                     //       }));
 
@@ -212,10 +218,59 @@ namespace VitruviusTest
         bool isSeated = false;
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            
+
             isSeated = !isSeated;
-            button.Content = "isSeated:"+isSeated;
+            button.Content = "isSeated:" + isSeated;
             Messenger.Default.Send(isSeated, ViewsConsts.MessagesTrackingMode);
+        }
+
+        private static readonly int COLUMS = 5;
+
+
+
+
+        private void table_Loaded(object sender, RoutedEventArgs e)
+        {
+            Grid grid = sender as Grid;
+            if (grid != null)
+            {
+                if (grid.RowDefinitions.Count == 0)
+                {
+                    for (int r = 0; r <= comboColors.Items.Count / COLUMS; r++)
+                    {
+                        grid.RowDefinitions.Add(new RowDefinition());
+                    }
+                }
+                if (grid.ColumnDefinitions.Count == 0)
+                {
+                    for (int c = 0; c < Math.Min(comboColors.Items.Count, COLUMS); c++)
+                    {
+                        grid.ColumnDefinitions.Add(new ColumnDefinition());
+                    }
+                }
+                for (int i = 0; i < grid.Children.Count; i++)
+                {
+                    Grid.SetColumn(grid.Children[i], i % COLUMS);
+                    Grid.SetRow(grid.Children[i], i / COLUMS);
+                }
+            }
+        }
+
+        private void addbutton_Click(object sender, RoutedEventArgs e)
+        {
+
+            if (comboColors.SelectedValue != null
+                && keys.SelectedValue != null
+                )
+            {
+                var tempColor = ((System.Reflection.PropertyInfo)comboColors.SelectedItem).GetValue(null);
+                var color = (Color)(tempColor);
+                var key = keys.SelectedValue as VirtualKeyCode?;
+
+                Tuple<Color, VirtualKeyCode> send = new Tuple<Color, VirtualKeyCode>((Color)color, (VirtualKeyCode)key);
+
+                Messenger.Default.Send(send, ViewsConsts.MessagesNewColor);
+            }
         }
     }
 
