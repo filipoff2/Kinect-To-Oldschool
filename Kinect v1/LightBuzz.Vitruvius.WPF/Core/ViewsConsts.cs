@@ -11,5 +11,7 @@ namespace LightBuzz.Vitruvius.Core
         public const string MessagesTrackingMode = "TrackingMode";
 
         public const string MessagesNewColor = "MessagesNewColor";
+
+        public const string MessagesPlayer = "MessagesPlayer";
     }
 }

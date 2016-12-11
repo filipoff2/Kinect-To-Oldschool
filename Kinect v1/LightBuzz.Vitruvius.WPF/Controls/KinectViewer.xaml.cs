@@ -75,55 +75,15 @@ namespace LightBuzz.Vitruvius.Controls
 
         #region --- Initialization ---
 
-        Ellipse e1, e2, e3, e4;
-
-     //   [DllImport("user32.dll")]
-     //   [return: MarshalAs(UnmanagedType.Bool)]
-//        static extern bool SetForegroundWindow(IntPtr hWnd);
 
         public KinectViewer()
         {
-            //Process[] processes = Process.GetProcessesByName("chrome"); // GetProcesses();// GetProcessesByName("Google Chrome (32 bit)");
-           // Process game1 = processes[0];
-           // IntPtr p = game1.MainWindowHandle;
-           // SetForegroundWindow(p); //GetProcessesByName("Google Chrome (32 bit)");
             this.InitializeComponent();
             SetValue(RenderTransformOriginProperty, new Point(0.5, 0.5)); //this is needed for FlippedHorizontally and FlippedVertically to work, since they set the RenderTransform property
 
-            e1 = CreateAnEllipse(100, 100, Colors.Red , VirtualKeyCode.LEFT);
-
-            e2 = CreateAnEllipse(100, 100, Colors.RoyalBlue,VirtualKeyCode.RIGHT);
-
-            e3 = CreateAnEllipse(100, 100, Colors.Salmon,VirtualKeyCode.UP);
-            e4 = CreateAnEllipse(100, 100, Colors.SeaGreen, VirtualKeyCode.DOWN);
-
-            Canvas.SetLeft(e1, 10);
-            Canvas.SetTop(e2, 10);
-
-
-            Canvas.SetLeft(e2, 10);
-            Canvas.SetTop(e2, 150);
-
-
-            Canvas.SetLeft(e3, 10);
-            Canvas.SetTop(e3, 250);
-
-
-            Canvas.SetLeft(e4, 10);
-            Canvas.SetTop(e4, 350);
-
-
-
-            canvas2.Children.Add(e1);
-            canvas2.Children.Add(e2);
-
-            canvas2.Children.Add(e3);
-            canvas2.Children.Add(e4);
-
-
+            Messenger.Default.Register<bool>(this, ViewsConsts.MessagesPlayer, setPlayerMode);
             Messenger.Default.Register<bool>(this, ViewsConsts.MessagesTrackingMode, changeSensorMode);
             Messenger.Default.Register<Tuple<Color, VirtualKeyCode>>(this, ViewsConsts.MessagesNewColor, addEllipse);
-
         }
 
         private void addEllipse(Tuple<Color, VirtualKeyCode> obj)
@@ -131,17 +91,13 @@ namespace LightBuzz.Vitruvius.Controls
            var color = obj.Item1;
            var key = obj.Item2;
 
-
             if (colorToKey.Keys.Contains(color))
             {
                 return;
             }
 
-            
-            e1 = CreateAnEllipse(100, 100, color, key);
+            var e1 = CreateAnEllipse(100, 100, color, key);
             canvas2.Children.Add(e1);
-
-
         }
 
 
@@ -151,6 +107,12 @@ namespace LightBuzz.Vitruvius.Controls
         {
             IsSensorSeated = obj;
         }
+
+        private void setPlayerMode(bool obj)
+        {
+            playerMode = obj;
+        }
+
 
         #endregion
 
@@ -341,6 +303,58 @@ namespace LightBuzz.Vitruvius.Controls
             DoThings(ellipse, point);
         }
 
+        public void DrawPlayer(Joint joint, Brush brush, double radius)
+        {
+            if (joint.TrackingState == JointTrackingState.NotTracked) return;
+
+            Point point = new Point(_ratioX, _ratioY);
+
+            switch (FrameType)
+            {
+                case VisualizationMode.Color:
+                    ColorImagePoint colorPoint = CoordinateMapper.MapSkeletonPointToColorPoint(joint.Position, ColorImageFormat.RgbResolution640x480Fps30);
+                    point.X *= float.IsInfinity(colorPoint.X) ? 0.0 : colorPoint.X;
+                    point.Y *= float.IsInfinity(colorPoint.Y) ? 0.0 : colorPoint.Y;
+                    break;
+
+                case VisualizationMode.Depth:
+                case VisualizationMode.Infrared:
+                    DepthImagePoint depthPoint = CoordinateMapper.MapSkeletonPointToDepthPoint(joint.Position, DepthImageFormat.Resolution320x240Fps30);
+                    point.X *= float.IsInfinity(depthPoint.X) ? 0.0 : depthPoint.X;
+                    point.Y *= float.IsInfinity(depthPoint.Y) ? 0.0 : depthPoint.Y;
+                    break;
+
+                default:
+                    break;
+            }
+
+            Draw(brush, radius, point,100f,100f);
+            Draw(brush, radius, point, -100f, 100f);
+            Draw(brush, radius, point, 200f, 100f);
+            Draw(brush, radius, point, -200f, 100f);
+            Draw(brush, radius, point, 100f, 100f);
+            Draw(brush, radius, point, 100f, 100f);
+
+
+            //DoThings(ellipse, point);
+        }
+
+        private void Draw(Brush brush, double radius, Point point, double left, double top) {
+
+            Ellipse ellipse = new Ellipse
+            {
+                Tag = TAG,
+                Width = radius,
+                Height = radius,
+                Fill = brush
+            };
+
+            Canvas.SetLeft(ellipse, point.X + left- ellipse.Width / 2);
+            Canvas.SetTop(ellipse, point.Y + top- ellipse.Height / 2);
+            canvas.Children.Add(ellipse);
+        }
+
+
         InputSimulator sim = new InputSimulator();
 
         public async Task<bool> DoThings(Ellipse ellipse, Point point)
@@ -367,8 +381,7 @@ namespace LightBuzz.Vitruvius.Controls
             }
             return true;
         }
-
-
+        
         ConcurrentDictionary<VirtualKeyCode, VirtualKeyCode> clicks = new ConcurrentDictionary<VirtualKeyCode, VirtualKeyCode>();
 
         public async Task Conflict(Rect r2, Ellipse elipse, VirtualKeyCode keycode)
@@ -419,10 +432,7 @@ namespace LightBuzz.Vitruvius.Controls
                     clicks.TryRemove(keycode,out notused);
                 }
             }
-
-
         }
-
 
         public void DrawJoint(Joint joint)
         {
@@ -475,7 +485,6 @@ namespace LightBuzz.Vitruvius.Controls
             };
 
             canvas.Children.Add(line);
-
         }
 
         public void DrawBone(Joint first, Joint second)
@@ -566,6 +575,8 @@ namespace LightBuzz.Vitruvius.Controls
         }
 
         private Brush _previousFill = null;
+        private bool playerMode;
+
         private void ellipse_DragEnter(object sender, DragEventArgs e)
         {
             Ellipse ellipse = sender as Ellipse;
@@ -616,8 +627,6 @@ namespace LightBuzz.Vitruvius.Controls
             }
         }
 
-
-
         public void DrawBody(Skeleton body)
         {
             Clear();
@@ -647,6 +656,14 @@ namespace LightBuzz.Vitruvius.Controls
                     continue;
                 }
 
+                //top 3+1+3
+                //top front 4
+                //buttom 2
+                //buttom front
+                if(joint.JointType == JointType.Spine && playerMode)
+                {
+                    DrawPlayer(joint, JointBrush, 200);
+                }
 
                 DrawJoint(joint, JointBrush, JointRadius);
             }

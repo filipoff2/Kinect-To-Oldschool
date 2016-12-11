@@ -272,6 +272,32 @@ namespace VitruviusTest
                 Messenger.Default.Send(send, ViewsConsts.MessagesNewColor);
             }
         }
-    }
 
+        private void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        bool sendInit = true;
+        private void Button_Click_2(object sender, RoutedEventArgs e)
+        {
+
+            
+            if (sendInit)
+            {
+                sendInit = false;
+                Tuple<Color, VirtualKeyCode> send = new Tuple<Color, VirtualKeyCode>(Colors.Red, VirtualKeyCode.LEFT);
+                Messenger.Default.Send(send, ViewsConsts.MessagesNewColor);
+
+                send = new Tuple<Color, VirtualKeyCode>(Colors.RoyalBlue, VirtualKeyCode.RIGHT);
+                Messenger.Default.Send(send, ViewsConsts.MessagesNewColor);
+
+                send = new Tuple<Color, VirtualKeyCode>(Colors.Salmon, VirtualKeyCode.UP);
+                Messenger.Default.Send(send, ViewsConsts.MessagesNewColor);
+
+                send = new Tuple<Color, VirtualKeyCode>(Colors.SeaGreen, VirtualKeyCode.DOWN);
+                Messenger.Default.Send(send, ViewsConsts.MessagesNewColor);
+            }
+        }
+    }
 }
