@@ -1,4 +1,11 @@
 using GalaSoft.MvvmLight;
+using GalaSoft.MvvmLight.Command;
+using System.Collections.ObjectModel;
+using System.Windows.Input;
+using VitruviusTest.Model;
+using System;
+using System.Collections.Generic;
+using System.Windows.Media;
 
 namespace VitruviusTest.ViewModel
 {
@@ -29,6 +36,33 @@ namespace VitruviusTest.ViewModel
             ////{
             ////    // Code runs "for real"
             ////}
+            AddCommand = new RelayCommand(cmdAdd);
+            ListColorKeys = new List<ColorKey>();
         }
+
+        private void cmdAdd()
+        {
+            ListColorKeys.Add(SelectedColorKey);
+        }
+
+        List<ColorKey> _listColorKeys;
+        public List<ColorKey> ListColorKeys
+        {
+            get
+            {
+                return _listColorKeys;
+            }
+            set
+            {
+                _listColorKeys = value;
+                RaisePropertyChanged();
+            }
+        }
+
+        public ICommand AddCommand { get; set; }
+
+        public ColorKey SelectedColorKey { get; set; }
+
+
     }
 }

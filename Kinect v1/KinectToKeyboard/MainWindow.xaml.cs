@@ -3,14 +3,16 @@
 using GalaSoft.MvvmLight.Messaging;
 using LightBuzz.Vitruvius;
 using LightBuzz.Vitruvius.Core;
-using LightBuzz.Vitruvius.WPF;
 using Microsoft.Kinect;
 using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using VitruviusTest.Model;
+using VitruviusTest.ViewModel;
 using WindowsInput.Native;
+using LightBuzz.Vitruvius.WPF;
 
 namespace VitruviusTest
 {
@@ -40,6 +42,7 @@ namespace VitruviusTest
 #endif
 
             Messenger.Default.Register<bool>(this, ViewsConsts.MessagesTrackingMode, changeSensorMode);
+            Messenger.Default.Register<string>(this, ViewsConsts.MessagesError, handleError);
         }
 
         private void changeSensorMode(bool mode)
@@ -62,6 +65,16 @@ namespace VitruviusTest
         }
 
 
+        private void handleError( string error ) {
+
+
+            MessageBoxResult result = MessageBox.Show("no kinect"+error, "Confirmation", MessageBoxButton.OK, MessageBoxImage.Error);
+            if (result == MessageBoxResult.Yes)
+            {
+                Application.Current.Shutdown();
+            }
+
+        }
 
 
         KinectSensor sensor;
@@ -258,18 +271,35 @@ namespace VitruviusTest
 
         private void addbutton_Click(object sender, RoutedEventArgs e)
         {
-
+            MainViewModel vm = this.DataContext as MainViewModel;
+            //MainViewModel vm = ViewModelLocator.Main;
             if (comboColors.SelectedValue != null
                 && keys.SelectedValue != null
                 )
             {
+
                 var tempColor = ((System.Reflection.PropertyInfo)comboColors.SelectedItem).GetValue(null);
                 var color = (Color)(tempColor);
                 var key = keys.SelectedValue as VirtualKeyCode?;
 
+
+                if (key == null)
+                {
+                    return;
+                }
+
+                ColorKey ck = new ColorKey();
+
+                ck.AreaColor = color;
+                ck.Key = (VirtualKeyCode)key;
+
                 Tuple<Color, VirtualKeyCode> send = new Tuple<Color, VirtualKeyCode>((Color)color, (VirtualKeyCode)key);
 
                 Messenger.Default.Send(send, ViewsConsts.MessagesNewColor);
+
+                vm.ListColorKeys.Add(ck);
+                vm.ListColorKeys = vm.ListColorKeys.Select(item => item).ToList();
+
             }
         }
 
@@ -282,7 +312,7 @@ namespace VitruviusTest
         private void Button_Click_2(object sender, RoutedEventArgs e)
         {
 
-            
+
             if (sendInit)
             {
                 sendInit = false;
@@ -298,6 +328,11 @@ namespace VitruviusTest
                 send = new Tuple<Color, VirtualKeyCode>(Colors.SeaGreen, VirtualKeyCode.DOWN);
                 Messenger.Default.Send(send, ViewsConsts.MessagesNewColor);
             }
+        }
+
+        private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
         }
     }
 }

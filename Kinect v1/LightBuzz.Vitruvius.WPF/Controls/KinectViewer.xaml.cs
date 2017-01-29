@@ -78,9 +78,15 @@ namespace LightBuzz.Vitruvius.Controls
 
         public KinectViewer()
         {
-            this.InitializeComponent();
-            SetValue(RenderTransformOriginProperty, new Point(0.5, 0.5)); //this is needed for FlippedHorizontally and FlippedVertically to work, since they set the RenderTransform property
+            try
+            {
+                this.InitializeComponent();
+                SetValue(RenderTransformOriginProperty, new Point(0.5, 0.5)); //this is needed for FlippedHorizontally and FlippedVertically to work, since they set the RenderTransform property
+            }
+            catch (Exception ee) {
 
+                Messenger.Default.Send<string>( ee.Message, ViewsConsts.MessagesError);
+            }
             Messenger.Default.Register<bool>(this, ViewsConsts.MessagesPlayer, setPlayerMode);
             Messenger.Default.Register<bool>(this, ViewsConsts.MessagesTrackingMode, changeSensorMode);
             Messenger.Default.Register<Tuple<Color, VirtualKeyCode>>(this, ViewsConsts.MessagesNewColor, addEllipse);
@@ -127,7 +133,7 @@ namespace LightBuzz.Vitruvius.Controls
         }
 
         public static readonly DependencyProperty CoordinateMapperProperty =
-            DependencyProperty.Register("CoordinateMapper", typeof(CoordinateMapper), typeof(KinectViewer), new PropertyMetadata(KinectSensor.KinectSensors.Where(s => s.Status == KinectStatus.Connected).FirstOrDefault().CoordinateMapper));
+            DependencyProperty.Register("CoordinateMapper", typeof(CoordinateMapper), typeof(KinectViewer), new PropertyMetadata(KinectSensor.KinectSensors.Any() ? KinectSensor.KinectSensors.Where(s => s.Status == KinectStatus.Connected).FirstOrDefault().CoordinateMapper : null));
 
         #endregion
 

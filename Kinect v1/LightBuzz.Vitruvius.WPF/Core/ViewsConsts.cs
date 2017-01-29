@@ -13,5 +13,7 @@ namespace LightBuzz.Vitruvius.Core
         public const string MessagesNewColor = "MessagesNewColor";
 
         public const string MessagesPlayer = "MessagesPlayer";
+
+        public const string MessagesError = "MessagesError";
     }
 }

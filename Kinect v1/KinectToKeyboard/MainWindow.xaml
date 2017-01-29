@@ -6,6 +6,7 @@
     Width="920" Height="580"
     Title="MainWindow"
     Loaded="Window_Loaded"
+    DataContext="{Binding Main, Source={StaticResource ViewModelLocator}}"
     >
 
     <Grid>
@@ -81,6 +82,16 @@
                 <Button x:Name="addbutton" Click="addbutton_Click">Add</Button>
             </StackPanel>
             
+                <ListBox ItemsSource="{Binding ListColorKeys,Mode=TwoWay}" Height="200" SelectionChanged="ListBox_SelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Background="{Binding AreaColor}">
+                            <TextBlock Text="{Binding Key}" Background="{Binding AreaColor}"  />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate> 
+                
+            </ListBox>
  
         </StackPanel>
 
